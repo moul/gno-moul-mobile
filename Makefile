@@ -56,11 +56,6 @@ test: Frameworks/GnoCore.xcframework MoulApp.xcodeproj
 		-project MoulApp.xcodeproj \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=$(SIMULATOR)' \
-		-derivedDataPath $(DERIVED) \
-		| xcbeautify || xcodebuild test \
-		-project MoulApp.xcodeproj \
-		-scheme $(SCHEME) \
-		-destination 'platform=iOS Simulator,name=$(SIMULATOR)' \
 		-derivedDataPath $(DERIVED)
 
 ## build: compile the app for the simulator
