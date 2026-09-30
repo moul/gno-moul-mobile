@@ -6,10 +6,17 @@
 GNOMOBILE_REPO ?= https://github.com/gnolang/gnomobile
 GNOMOBILE_REF  ?= eddca68
 GNOMOBILE_DIR  ?= .cache/gnomobile
-# gomobile shells out to `go` in a generated module with no `go` directive, so
-# GOTOOLCHAIN=auto leaves it on the host's base toolchain. Pinning it is the
-# difference between a build and "requires go >= 1.24.0 (running go 1.23.8)".
-GO_TOOLCHAIN   ?= go1.25.9
+# Two failures, one knob, pulling in opposite directions.
+#
+# `gomobile bind` shells out to `go` in a generated module with no `go`
+# directive, so GOTOOLCHAIN=auto leaves it on the host's base toolchain and the
+# build dies with "requires go >= 1.24.0 (running go 1.23.8)" while `go version`
+# says 1.25.9. But `gomobile init` runs `go install ...cmd/gobind@latest`, whose
+# current version wants go >= 1.26, so a hard pin fails there instead.
+#
+# `<version>+auto` is the pair: a floor, not a ceiling. It raises the generated
+# module off the base toolchain and still lets `@latest` pull a newer one.
+GO_TOOLCHAIN   ?= go1.25.9+auto
 
 # Whatever iPhone this machine actually has, so the same command works on a
 # laptop and on a runner with a different Xcode.
