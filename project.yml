@@ -1,0 +1,75 @@
+name: MoulApp
+options:
+  bundleIdPrefix: land.gno.moul
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  minimumXcodeGenVersion: "2.42"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: YES
+
+targets:
+  # The Swift face of the gno core. Nothing here knows about SwiftUI.
+  GnoKit:
+    type: framework
+    platform: iOS
+    sources: [Sources/GnoKit]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: land.gno.moul.kit
+        DEFINES_MODULE: YES
+        # The Go runtime resolves DNS through libresolv (res_9_ninit and
+        # friends), which is not linked by default on iOS. Without this the
+        # framework builds and only fails at link time, with symbol names that
+        # say nothing about Go.
+        OTHER_LDFLAGS: -lresolv
+    dependencies:
+      - framework: Frameworks/GnoCore.xcframework
+        embed: false
+
+  MoulApp:
+    type: application
+    platform: iOS
+    sources: [Sources/MoulApp]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: land.gno.moul.app
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: moul
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        # The keybase lives in Documents so it survives an app update. It is
+        # encrypted, and the password is in the keychain, not next to it.
+        INFOPLIST_KEY_UIFileSharingEnabled: NO
+    dependencies:
+      - target: GnoKit
+      - framework: Frameworks/GnoCore.xcframework
+        embed: true
+        codeSign: true
+
+  GnoKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests/GnoKitTests]
+    dependencies:
+      - target: GnoKit
+      - framework: Frameworks/GnoCore.xcframework
+        embed: true
+        codeSign: true
+
+schemes:
+  MoulApp:
+    build:
+      targets:
+        MoulApp: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [GnoKitTests]

@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.9"
+
+      - name: Read the pinned gnomobile commit
+        id: pin
+        run: echo "ref=$(sed -n 's/^GNOMOBILE_REF *?= *//p' Makefile)" >> "$GITHUB_OUTPUT"
+
+      # The Go core takes about ten minutes to build and only changes when the
+      # pin does, so it is cached on the pin rather than on the lockfiles.
+      - name: Cache GnoCore.xcframework
+        id: framework
+        uses: actions/cache@v4
+        with:
+          path: Frameworks/GnoCore.xcframework
+          key: gnocore-${{ runner.os }}-${{ steps.pin.outputs.ref }}
+
+      - name: Build the Go core
+        if: steps.framework.outputs.cache-hit != 'true'
+        run: make framework
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Show what we are building against
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available | sed -n 's/^ *\(iPhone [^(]*\) (.*/\1/p' | head -5
+
+      - name: Test
+        run: make test
