@@ -39,6 +39,7 @@ struct CounterView: View {
     }
 
     var body: some View {
+        NavigationStack {
         List {
             Section {
                 VStack(spacing: 4) {
@@ -91,9 +92,11 @@ struct CounterView: View {
                 }
             }
         }
+        .navigationTitle(CounterFeature.descriptor.title)
         .overlay { if busy { ProgressView().controlSize(.large) } }
         .refreshable { await read() }
         .task { await read() }
+        }
     }
 
     private var covered: Bool {

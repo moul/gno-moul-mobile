@@ -11,11 +11,14 @@ It exists to answer two questions in running code rather than in a design doc:
    features for, with a spend limit it declares up front.
 2. **What does it cost to add the next feature?** One file and one line.
 
-<img src="docs/home.png" width="240" alt="reading a realm"> <img src="docs/session.png" width="240" alt="granting a session"> <img src="docs/counter.png" width="240" alt="a session-signed call">
+<img src="docs/home.png" width="200" alt="reading a realm"> <img src="docs/blog.png" width="200" alt="a realm that links to its own pages"> <img src="docs/session.png" width="200" alt="granting a session"> <img src="docs/counter.png" width="200" alt="a session-signed call">
 
 ## What it does today
 
-- Reads `gno.land/r/moul/home` and renders its `Render()` markdown natively.
+- Reads `gno.land/r/moul/home` and `gno.land/r/moul/blog`, rendering their `Render()`
+  markdown natively. A realm links to its own pages as `/r/ns/name:subpath`, which means
+  nothing to a browser; the app intercepts those and renders the page itself, so tapping
+  a post title opens the post rather than Safari.
 - Reads `gno.land/r/moul/x/daily/counter/v0` with `vm/qeval`, and moves it with a
   session-signed transaction.
 - Mints a session key in its own encrypted keybase, derives the `gpub…` the grant needs,
@@ -68,7 +71,8 @@ enum BlogFeature {
 }
 ```
 
-Add it to `Features.all` and it appears as a tab. If `writes` is true, its realm is
+Add it to `Features.all` and it appears as a tab. The Blog tab above was added exactly
+that way, after the first two, and it is the reason `RealmPage` exists as a shared view. If `writes` is true, its realm is
 automatically added to the scope the app asks for, and its budget to the spend limit: the
 session request is derived from the build, never typed by hand.
 
@@ -126,11 +130,19 @@ is 305 MB and is not committed either.
   "requires go >= 1.24.0 (running go 1.23.8)". The Makefile pins it.
 - **The Go runtime needs `-lresolv`** on iOS, or the link fails on `_res_9_ninit` with
   nothing in the message about Go.
+- **`GOTOOLCHAIN` has to be a floor, not a pin.** `gomobile bind` needs it raised off the
+  base toolchain, but `gomobile init` runs `go install …cmd/gobind@latest`, which a hard
+  pin blocks. `go1.25.9+auto` is the pair. A warm cache hides this: `init` is skipped once
+  it has run, so the pin looks fine locally and fails on a clean checkout.
+- **Escaped markdown in a realm's output is escaped on purpose.** `sanitize` escapes
+  untrusted content, so a post excerpt arrives as `\> \*\*text\*\*` and is meant to read
+  literally. The renderer unescapes and shows the characters rather than styling them.
 
 ## Not yet
 
 Android and React Native are deliberately out of scope for now. Images in realm markdown
-render as their alt text. The app talks to mainnet only.
+render as their alt text. The app talks to mainnet only. The write path is built and tested
+but has not yet been exercised against a live grant.
 
 ## Licence
 

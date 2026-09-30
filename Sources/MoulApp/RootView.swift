@@ -60,11 +60,12 @@ struct FeatureTabs: View {
 
     var body: some View {
         TabView(selection: $selection) {
+            // Each feature owns its own NavigationStack. Wrapping them here
+            // instead would nest a second one inside any feature that needs to
+            // push a page of its own, and a nested stack ignores the outer
+            // path binding.
             ForEach(Features.all) { feature in
-                NavigationStack {
-                    feature.screen(model)
-                        .navigationTitle(feature.descriptor.title)
-                }
+                feature.screen(model)
                 .tabItem {
                     Label(feature.descriptor.title, systemImage: feature.descriptor.symbol)
                 }

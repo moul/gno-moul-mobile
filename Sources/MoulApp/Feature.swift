@@ -36,6 +36,7 @@ struct Feature: Identifiable {
 enum Features {
     static let all: [Feature] = [
         HomeFeature.feature,
+        BlogFeature.feature,
         CounterFeature.feature,
     ]
 

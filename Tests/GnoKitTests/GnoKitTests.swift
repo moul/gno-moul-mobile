@@ -240,3 +240,33 @@ struct ErrorTests {
         #expect(!GnoError.bridge("boom").isStreamEnd)
     }
 }
+
+// MARK: - realm links
+
+/// This decides whether a link in rendered markdown stays inside the app or
+/// leaves for the browser. Wrong either way is visible: too eager and every
+/// external link dies, too shy and every post opens Safari on a URL with no host.
+@Suite("realm links")
+struct RealmLinkTests {
+    private func subpath(_ text: String) -> String? {
+        guard let url = URL(string: text) else { return nil }
+        return GnoRealmLink.renderPath(of: url, in: "gno.land/r/moul/blog")
+    }
+
+    @Test func readsASubPageOfTheSameRealm() {
+        #expect(subpath("/r/moul/blog:gnopm") == "gnopm")
+        #expect(subpath("/r/moul/blog:t/tooling") == "t/tooling")
+    }
+
+    /// The separator is a colon. `/r/moul/blog/gnopm` is a different package,
+    /// not a page of this one.
+    @Test func aSlashIsNotTheSubPageSeparator() {
+        #expect(subpath("/r/moul/blog/gnopm") == nil)
+    }
+
+    @Test func leavesOtherRealmsAndTheWebAlone() {
+        #expect(subpath("/r/gnoland/blog:hello") == nil)
+        #expect(subpath("https://github.com/moul") == nil)
+        #expect(subpath("/r/moul/blog") == nil)
+    }
+}

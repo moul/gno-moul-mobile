@@ -29,6 +29,7 @@ private struct Block: Identifiable {
         case bullet(String)
         case paragraph(String)
         case code(String)
+        case quote(String)
         case rule
     }
 
@@ -47,6 +48,11 @@ private struct Block: Identifiable {
             }
         case let .paragraph(text):
             Text(inline(text))
+        case let .quote(text):
+            HStack(alignment: .top, spacing: 10) {
+                Rectangle().fill(.tertiary).frame(width: 3)
+                Text(inline(text)).foregroundStyle(.secondary)
+            }
         case let .code(text):
             ScrollView(.horizontal, showsIndicators: false) {
                 Text(text).font(.system(.caption, design: .monospaced))
@@ -119,6 +125,14 @@ private struct Block: Identifiable {
                 // new paragraph splits every wrapped list item in two, which is
                 // most of them: realms wrap their markdown at 80 columns.
                 blocks[blocks.count - 1] = Block(kind: .bullet(started + " " + line))
+            } else if line.hasPrefix("> ") || line == ">" {
+                flushParagraph()
+                let text = String(line.dropFirst(line.hasPrefix("> ") ? 2 : 1))
+                if case .quote(let started)? = blocks.last?.kind {
+                    blocks[blocks.count - 1] = Block(kind: .quote(started + " " + text))
+                } else {
+                    blocks.append(Block(kind: .quote(text)))
+                }
             } else if line.hasPrefix("---") {
                 flushParagraph()
                 blocks.append(Block(kind: .rule))
