@@ -270,3 +270,104 @@ struct RealmLinkTests {
         #expect(subpath("/r/moul/blog") == nil)
     }
 }
+
+/// Every page of the wiki and the registry is one of these, so the parser has to
+/// get nested paths and namespaces right, not just the blog's one-segment slugs.
+@Suite("realm links, deeper")
+struct DeeperRealmLinkTests {
+    @Test func keepsNamespacesAndQueriesInThePath() {
+        let wiki = "gno.land/r/moul/x/wiki/v0"
+        #expect(GnoRealmLink.renderPath(of: URL(string: "/r/moul/x/wiki/v0:Special:AllPages")!, in: wiki)
+            == "Special:AllPages")
+        #expect(GnoRealmLink.renderPath(of: URL(string: "/r/moul/x/wiki/v0:Special:Backlinks?page=Gno")!, in: wiki)
+            == "Special:Backlinks?page=Gno")
+    }
+
+    @Test func keepsAPackagePathAsTheSubPage() {
+        let url = URL(string: "/r/moul/gnopm/registry/v0:gno.land/p/moul/agents/commit/v0")!
+        #expect(GnoRealmLink.renderPath(of: url, in: "gno.land/r/moul/gnopm/registry/v0")
+            == "gno.land/p/moul/agents/commit/v0")
+    }
+
+    /// A txlink has no colon before its `$`, so it is never read as a page.
+    @Test func aTxlinkIsNotAPage() {
+        let url = URL(string: "/r/moul/x/wiki/v0$help&func=Edit&title=Gno")!
+        #expect(GnoRealmLink.renderPath(of: url, in: "gno.land/r/moul/x/wiki/v0") == nil)
+    }
+}
+
+/// The edit link on every article. Read wrong, the editor opens on a page that
+/// does not exist and the save creates it.
+@Suite("txlinks")
+struct CallLinkTests {
+    private let wiki = "gno.land/r/moul/x/wiki/v0"
+
+    private func call(_ text: String) -> GnoRealmLink.Call? {
+        guard let url = URL(string: text) else { return nil }
+        return GnoRealmLink.call(of: url, in: wiki)
+    }
+
+    /// Verbatim from `Render("Gno")` on gnoland-1, 2026-10-01.
+    @Test func readsTheEditLinkAnArticleRenders() {
+        #expect(call("/r/moul/x/wiki/v0$help&func=Edit&title=Gno")
+            == .init(function: "Edit", args: ["title": "Gno"]))
+    }
+
+    /// `url.Values.Encode` writes a space as `+` and a colon as `%3A`.
+    @Test func decodesTheFormEncoding() {
+        #expect(call("/r/moul/x/wiki/v0$help&func=Edit&title=Gno+land")?.args["title"] == "Gno land")
+        #expect(call("/r/moul/x/wiki/v0$help&func=Edit&title=Category%3AA%26B")?.args["title"] == "Category:A&B")
+    }
+
+    @Test func survivesAMarkdownParserThatAddedAHost() {
+        #expect(call("https://gno.land/r/moul/x/wiki/v0$help&func=Edit&title=Gno")?.args["title"] == "Gno")
+    }
+
+    @Test func ignoresOtherRealmsPagesAndBareHelp() {
+        #expect(call("/r/moul/blog$help&func=Edit&title=Gno") == nil)
+        #expect(call("/r/moul/x/wiki/v0:Gno") == nil)
+        #expect(call("/r/moul/x/wiki/v0$help") == nil)
+    }
+}
+
+/// What the editor starts from. Byte for byte, or the next revision silently
+/// rewrites the page.
+@Suite("wiki source")
+struct WikiSourceTests {
+    /// Verbatim from `Render("Gno/raw")` on gnoland-1, 2026-10-01. The hash is
+    /// the chain's, not one computed here, so a parse that drops or adds a
+    /// single newline fails `verified`.
+    static let gno = "# Source of Gno (rev 2)\nsha256 `f671ee2a49ed67be197d22724bb38900672a080934a8253ec5722e8715c723a1`\n\n```\nGno is the language realms are written in: Go's syntax and semantics, minus the sources of non-determinism a chain cannot tolerate.\n\nSee [[Gno land]].\n\n[[Category:Languages]]\n\n```\n[← back to the article](/r/moul/x/wiki/v0:Gno)\n\n"
+
+    @Test func readsBackWhatTheChainHashed() throws {
+        let source = try #require(GnoWikiSource.parse(Self.gno))
+        #expect(source.revision == 2)
+        #expect(source.body.hasPrefix("Gno is the language"))
+        #expect(source.body.hasSuffix("[[Category:Languages]]\n"))
+        #expect(source.verified)
+    }
+
+    @Test func noticesABodyThatIsNotTheOneHashed() throws {
+        let tampered = Self.gno.replacingOccurrences(of: "See [[Gno land]].", with: "See [[Gno]].")
+        let source = try #require(GnoWikiSource.parse(tampered))
+        #expect(!source.verified)
+    }
+
+    /// `CodeFence` outscans the body's backticks, so a body holding a
+    /// three-backtick block comes back in a four-backtick fence, and the inner
+    /// one must not end it.
+    @Test func aLongerFenceKeepsAnInnerBlock() throws {
+        let body = "before\n```go\nx := 1\n```\nafter"
+        let markdown = "# Source of Code (rev 7)\nsha256 `\(GnoWikiSource.sha256(body))`\n\n````\n\(body)\n````\n"
+        let source = try #require(GnoWikiSource.parse(markdown))
+        #expect(source.body == body)
+        #expect(source.revision == 7)
+        #expect(source.verified)
+    }
+
+    /// A missing page renders an invitation to create it, which is not a source.
+    @Test func aMissingPageIsNotASource() {
+        #expect(GnoWikiSource.parse("# Nope\nThis page does not exist yet.\n") == nil)
+        #expect(GnoWikiSource.parse("404: no revision") == nil)
+    }
+}

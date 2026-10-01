@@ -21,6 +21,12 @@ It exists to answer two questions in running code rather than in a design doc:
   a post title opens the post rather than Safari.
 - Reads `gno.land/r/moul/x/daily/counter/v0` with `vm/qeval`, and moves it with a
   session-signed transaction.
+- Reads and edits `gno.land/r/moul/x/wiki/v0`. Every article renders an `edit` link as a
+  `txlink` to `Edit`; the app takes that offer and opens an editor on the page's
+  `Title/raw` source, checked against the sha256 the realm prints beside it, so a save
+  starts from the bytes on chain and not from the rendered article.
+- Reads the gnopm source registry, `gno.land/r/moul/gnopm/registry/v0`: who claimed
+  which repository a deployed package came from.
 - Mints a session key in its own encrypted keybase, derives the `gpub…` the grant needs,
   watches the chain, and activates itself the moment the grant lands.
 - Shows the grant back as the chain has it: allowed paths, spend limit, what is spent,
