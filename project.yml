@@ -29,6 +29,9 @@ targets:
         # framework builds and only fails at link time, with symbol names that
         # say nothing about Go.
         OTHER_LDFLAGS: -lresolv
+    # GnoCore is a static archive, so it is linked here and embedded nowhere:
+    # the Go runtime ends up inside GnoKit.framework once. Embedding it is what
+    # makes Xcode object to gomobile's versioned bundle and empty Info.plist.
     dependencies:
       - framework: Frameworks/GnoCore.xcframework
         embed: false
@@ -49,9 +52,6 @@ targets:
         INFOPLIST_KEY_UIFileSharingEnabled: NO
     dependencies:
       - target: GnoKit
-      - framework: Frameworks/GnoCore.xcframework
-        embed: true
-        codeSign: true
 
   GnoKitTests:
     type: bundle.unit-test
@@ -59,9 +59,6 @@ targets:
     sources: [Tests/GnoKitTests]
     dependencies:
       - target: GnoKit
-      - framework: Frameworks/GnoCore.xcframework
-        embed: true
-        codeSign: true
 
 schemes:
   MoulApp:
