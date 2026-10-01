@@ -59,7 +59,7 @@ public enum GnoRealmLink {
         for pair in relative[relative.index(after: dollar)...].split(separator: "&") {
             let parts = pair.split(separator: "=", maxSplits: 1).map(String.init)
             guard parts.count == 2 else { continue }
-            let value = parts[1].removingPercentEncoding ?? parts[1]
+            let value = parts[1].replacingOccurrences(of: "+", with: " ").removingPercentEncoding ?? parts[1]
             if parts[0] == "func" { function = value } else { args[parts[0]] = value }
         }
         guard let function, !function.isEmpty else { return nil }

@@ -33,7 +33,7 @@ public struct GnoWikiSource: Equatable, Sendable {
 
         let fence = lines[open]
         guard let close = lines[(open + 1)...].firstIndex(of: fence) else { return nil }
-        let body = lines[(open + 1)..<close].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = lines[(open + 1)..<close].joined(separator: "\n")
         return GnoWikiSource(revision: revision, hash: hash, body: body)
     }
 
