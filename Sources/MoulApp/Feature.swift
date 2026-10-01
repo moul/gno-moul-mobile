@@ -37,7 +37,9 @@ enum Features {
     static let all: [Feature] = [
         HomeFeature.feature,
         BlogFeature.feature,
+        WikiFeature.feature,
         CounterFeature.feature,
+        GnopmFeature.feature,
     ]
 
     /// Everything the session must be allowed to call.
