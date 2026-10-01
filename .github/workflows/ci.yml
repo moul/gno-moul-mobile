@@ -31,7 +31,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Frameworks/GnoCore.xcframework
-          key: gnocore-${{ runner.os }}-${{ steps.pin.outputs.ref }}
+          # `raw` since GnoCore is no longer flattened after the build.
+          key: gnocore-raw-${{ runner.os }}-${{ steps.pin.outputs.ref }}
 
       - name: Build the Go core
         if: steps.framework.outputs.cache-hit != 'true'

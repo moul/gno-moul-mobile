@@ -47,7 +47,6 @@ Frameworks/GnoCore.xcframework:
 	cd $(GNOMOBILE_DIR) && GOTOOLCHAIN=$(GO_TOOLCHAIN) $(MAKE) framework.ios
 	rm -rf $@
 	cp -R $(GNOMOBILE_DIR)/framework/ios/GnoCore.xcframework $@
-	./scripts/flatten-xcframework.sh $@
 
 ## test: run the unit tests on a simulator
 .PHONY: test

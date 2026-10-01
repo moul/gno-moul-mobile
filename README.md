@@ -43,7 +43,7 @@ Sources/MoulApp     SwiftUI. One file per feature, plus the onboarding
 Tests/GnoKitTests   unit tests, plus four that run the real core in-process
 ```
 
-The chain work is done by [Gno Native Kit](https://github.com/gnolang/gnomobile): its Go
+The chain work is done by [Gno Native Kit](https://github.com/gnolang/gnonative): its Go
 core is compiled to `GnoCore.xcframework` and runs inside the app. There is no server
 between the phone and the chain.
 
@@ -73,12 +73,12 @@ enum BlogFeature {
         writes: false,
         budget: 0
     )
-    static let feature = Feature(descriptor: descriptor) { AnyView(BlogView(model: $0)) }
+    static let feature = Feature(descriptor: descriptor) { AnyView(RealmBrowser(model: $0, descriptor: descriptor)) }
 }
 ```
 
 Add it to `Features.all` and it appears as a tab. The Blog tab above was added exactly
-that way, after the first two, and it is the reason `RealmPage` exists as a shared view. If `writes` is true, its realm is
+that way, after the first two, and Wiki and gnopm reused its screen, which is why `RealmBrowser` is shared. If `writes` is true, its realm is
 automatically added to the scope the app asks for, and its budget to the spend limit: the
 session request is derived from the build, never typed by hand.
 
@@ -128,9 +128,10 @@ is 305 MB and is not committed either.
   `…/counter2`, and `GnoSessionAccount.covers` matches accordingly.
 - **Go writes its replies with `omitempty`**, so every zero is simply absent. A local key's
   `type` is 0, which means a required field there would fail to decode every key there is.
-- **gomobile's framework needs two fixes before Xcode will embed it**: it emits a versioned
-  macOS-style bundle where iOS wants a shallow one, and an empty `Info.plist`.
-  `scripts/flatten-xcframework.sh` does both, idempotently.
+- **GnoCore is a static framework: link it, never embed it.** `file` on its binary says
+  `current ar archive`. Embedded, Xcode treats it as dynamic and rejects gomobile's
+  versioned bundle layout and its empty `Info.plist`, which reads like two gomobile bugs and
+  is neither. It is linked into `GnoKit` only, so the Go runtime is in the app once.
 - **`gomobile bind` runs `go mod tidy` in a generated module with no `go` directive**, so
   `GOTOOLCHAIN=auto` leaves it on the host's base toolchain and the build fails with
   "requires go >= 1.24.0 (running go 1.23.8)". The Makefile pins it.
